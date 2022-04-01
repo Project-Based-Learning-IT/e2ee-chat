@@ -61,6 +61,7 @@ dependencies {
 
     implementation "androidx.compose.foundation:foundation:1.2.0-alpha06"
     implementation "androidx.compose.foundation:foundation-layout:1.2.0-alpha06"
+    implementation "com.google.accompanist:accompanist-navigation-animation:0.24.5-alpha"
 
     implementation "androidx.compose.material3:material3:1.0.0-alpha08"
     implementation "androidx.core:core-splashscreen:1.0.0-beta02"

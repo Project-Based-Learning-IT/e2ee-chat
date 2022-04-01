@@ -6,11 +6,14 @@ import androidx.activity.compose.setContent
 import androidx.compose.foundation.background
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.SideEffect
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.platform.WindowInfo
@@ -19,11 +22,19 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.core.view.WindowCompat
+import com.google.accompanist.navigation.animation.AnimatedNavHost
+import com.google.accompanist.navigation.animation.composable
+import com.google.accompanist.navigation.animation.rememberAnimatedNavController
 import com.google.accompanist.systemuicontroller.rememberSystemUiController
+import me.siddheshkothadi.chat.ui.components.Login
+import me.siddheshkothadi.chat.ui.screens.ChatScreen
+import me.siddheshkothadi.chat.ui.screens.LoginScreen
 import me.siddheshkothadi.chat.ui.theme.ChatTheme
 
 class MainActivity : ComponentActivity() {
-    @OptIn(ExperimentalMaterial3Api::class)
+    @OptIn(ExperimentalMaterial3Api::class,
+        androidx.compose.animation.ExperimentalAnimationApi::class
+    )
     override fun onCreate(savedInstanceState: Bundle?) {
         WindowCompat.setDecorFitsSystemWindows(window, false)
         installSplashScreen()
@@ -32,6 +43,8 @@ class MainActivity : ComponentActivity() {
         setContent {
             val systemUiController = rememberSystemUiController()
             val useDarkIcons = !isSystemInDarkTheme()
+
+            val navController = rememberAnimatedNavController()
 
             SideEffect {
                 systemUiController.setSystemBarsColor(
@@ -44,34 +57,20 @@ class MainActivity : ComponentActivity() {
                 Surface(
                     modifier = Modifier.fillMaxSize()
                 ) {
-                }
-                Scaffold(
-                    topBar = {
-                        Surface(tonalElevation = 2.dp) {
-                            CenterAlignedTopAppBar(
-                                title = {
-                                    Text("Chat")
-                                },
-                                Modifier.systemBarsPadding()
-                            )
+                    AnimatedNavHost(navController, startDestination = "login") {
+                        composable(
+                            "login"
+                        ) {
+                            LoginScreen(navController)
                         }
-                    },
-                    bottomBar = {
 
-                    }
-                ) {
-                    Column(
-                        modifier = Modifier.fillMaxSize(),
-                        verticalArrangement = Arrangement.Center,
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        Text("Login as", fontSize = 22.sp)
-                        Spacer(Modifier.height(24.dp))
-                        FilledTonalButton(onClick = { /*TODO*/ }) {
-                            Text("Alice")
-                        }
-                        FilledTonalButton(onClick = { /*TODO*/ }) {
-                            Text("Bob")
+                        composable(
+                            "chat/{name}"
+                        ) {
+                            val name = navController.currentBackStackEntry?.arguments?.getString("name")
+                            if (name != null) {
+                                ChatScreen(navHostController = navController, name = name)
+                            }
                         }
                     }
                 }
