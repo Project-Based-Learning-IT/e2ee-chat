@@ -3,6 +3,7 @@ package me.siddheshkothadi.chat
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.activity.viewModels
 import androidx.compose.foundation.background
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
@@ -22,10 +23,13 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.core.view.WindowCompat
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.google.accompanist.navigation.animation.AnimatedNavHost
 import com.google.accompanist.navigation.animation.composable
 import com.google.accompanist.navigation.animation.rememberAnimatedNavController
 import com.google.accompanist.systemuicontroller.rememberSystemUiController
+import com.google.firebase.database.ktx.database
+import com.google.firebase.ktx.Firebase
 import me.siddheshkothadi.chat.ui.components.Login
 import me.siddheshkothadi.chat.ui.screens.ChatScreen
 import me.siddheshkothadi.chat.ui.screens.LoginScreen
@@ -39,6 +43,8 @@ class MainActivity : ComponentActivity() {
         WindowCompat.setDecorFitsSystemWindows(window, false)
         installSplashScreen()
         super.onCreate(savedInstanceState)
+
+        val mainViewModel: MainViewModel by viewModels()
 
         setContent {
             val systemUiController = rememberSystemUiController()
@@ -69,7 +75,7 @@ class MainActivity : ComponentActivity() {
                         ) {
                             val name = navController.currentBackStackEntry?.arguments?.getString("name")
                             if (name != null) {
-                                ChatScreen(navHostController = navController, name = name)
+                                ChatScreen(navHostController = navController, name = name, mainViewModel)
                             }
                         }
                     }
