@@ -1,5 +1,7 @@
 package me.siddheshkothadi.chat.data
 
+import me.siddheshkothadi.chat.model.Message
+
 val messages = listOf<Message>(
     Message(
         "Alice",

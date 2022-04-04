@@ -1,39 +1,32 @@
 package me.siddheshkothadi.chat
 
 import android.os.Bundle
+import android.util.Base64
+import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.viewModels
-import androidx.compose.foundation.background
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalWindowInfo
-import androidx.compose.ui.platform.WindowInfo
 import androidx.compose.ui.tooling.preview.Preview
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.core.view.WindowCompat
-import androidx.lifecycle.viewmodel.compose.viewModel
 import com.google.accompanist.navigation.animation.AnimatedNavHost
 import com.google.accompanist.navigation.animation.composable
 import com.google.accompanist.navigation.animation.rememberAnimatedNavController
 import com.google.accompanist.systemuicontroller.rememberSystemUiController
-import com.google.firebase.database.ktx.database
-import com.google.firebase.ktx.Firebase
-import me.siddheshkothadi.chat.ui.components.Login
 import me.siddheshkothadi.chat.ui.screens.ChatScreen
 import me.siddheshkothadi.chat.ui.screens.LoginScreen
 import me.siddheshkothadi.chat.ui.theme.ChatTheme
+import java.math.BigInteger
+import java.security.KeyFactory
+import java.security.KeyPairGenerator
+import java.security.interfaces.RSAPublicKey
+import java.security.spec.*
 
 class MainActivity : ComponentActivity() {
     @OptIn(ExperimentalMaterial3Api::class,

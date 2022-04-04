@@ -83,12 +83,17 @@ fun ChatScreen(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
+                    Spacer(Modifier.width(10.dp))
+                    CircularProgressIndicator(
+                        progress = textState.length/ 84.toFloat(),
+                        modifier = Modifier.height(24.dp).width(24.dp)
+                    )
                     BasicTextField(
                         value = textState,
                         onValueChange = { mainViewModel.setTextState(it) },
                         modifier = Modifier
                             .weight(1f)
-                            .padding(horizontal = 24.dp, vertical = 18.dp),
+                            .padding(horizontal = 12.dp, vertical = 18.dp),
                         keyboardOptions = KeyboardOptions(
                             keyboardType = KeyboardType.Text,
                             imeAction = ImeAction.Send
