@@ -22,7 +22,8 @@ import me.siddheshkothadi.chat.model.User
 @Composable
 fun ChatCard(
     user: User,
-    onClickAction: () -> Unit
+    onClickAction: () -> Unit,
+    navigateToProfile: () -> Unit
 ) {
     Box(
         Modifier
@@ -45,7 +46,9 @@ fun ChatCard(
                     modifier = Modifier
                         .width(50.dp)
                         .height(50.dp)
-                        .clip(CircleShape)
+                        .clip(CircleShape).clickable {
+                            navigateToProfile()
+                        }
                 )
                 Spacer(modifier = Modifier.width(24.dp))
                 Text(user.displayName, modifier = Modifier.weight(1f), fontSize = 20.sp, fontWeight = FontWeight.W500)

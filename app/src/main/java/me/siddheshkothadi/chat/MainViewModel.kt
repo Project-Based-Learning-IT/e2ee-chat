@@ -210,4 +210,16 @@ class MainViewModel : ViewModel() {
     fun removeMessageEventListener(key: String) {
         chatRef.child(key).removeEventListener(messageListener)
     }
+
+    fun getCurrentUser(): User {
+        val displayName = auth.currentUser?.displayName ?: ""
+        val photoUrl = auth.currentUser?.photoUrl.toString() ?: ""
+        val email = auth.currentUser?.email ?: ""
+
+        return User(
+            displayName = displayName,
+            photoUrl = photoUrl,
+            email = email
+        )
+    }
 }

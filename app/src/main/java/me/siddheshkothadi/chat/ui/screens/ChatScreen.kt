@@ -72,7 +72,7 @@ fun ChatScreen(
                                 .width(30.dp)
                                 .clip(CircleShape)
                                 .clickable {
-                                    // TODO: Go to profile page
+                                    navHostController.navigate("profile/${user.uid}")
                                 }
                         )
                         Spacer(Modifier.width(15.dp))

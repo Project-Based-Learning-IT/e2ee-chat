@@ -56,7 +56,9 @@ fun ChatListScreen(
                         }
                     },
                     navigationIcon = {
-                        IconButton(onClick = { /*TODO*/ }) {
+                        IconButton(onClick = {
+                            navHostController.navigate("myProfile")
+                        }) {
                             Icon(Icons.Default.AccountCircle, "Account")
                         }
                     }
@@ -68,9 +70,15 @@ fun ChatListScreen(
             contentPadding = PaddingValues(vertical = 8.dp)
         ) {
             items(listOfUsers) {
-                ChatCard(user = it, onClickAction = {
-                    navHostController.navigate("chat/${it.uid}")
-                })
+                ChatCard(
+                    user = it,
+                    onClickAction = {
+                        navHostController.navigate("chat/${it.uid}")
+                    },
+                    navigateToProfile = {
+                        navHostController.navigate("profile/${it.uid}")
+                    }
+                )
             }
             if(isUserListLoading) {
                 item {

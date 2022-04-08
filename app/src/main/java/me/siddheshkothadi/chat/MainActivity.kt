@@ -22,9 +22,7 @@ import com.google.accompanist.navigation.animation.AnimatedNavHost
 import com.google.accompanist.navigation.animation.composable
 import com.google.accompanist.navigation.animation.rememberAnimatedNavController
 import com.google.accompanist.systemuicontroller.rememberSystemUiController
-import me.siddheshkothadi.chat.ui.screens.ChatListScreen
-import me.siddheshkothadi.chat.ui.screens.ChatScreen
-import me.siddheshkothadi.chat.ui.screens.LoggedOutScreen
+import me.siddheshkothadi.chat.ui.screens.*
 import me.siddheshkothadi.chat.ui.theme.ChatTheme
 
 class MainActivity : ComponentActivity() {
@@ -72,6 +70,25 @@ class MainActivity : ComponentActivity() {
                             "chatList"
                         ) {
                             ChatListScreen(navController, mainViewModel)
+                        }
+
+                        composable(
+                            "myProfile"
+                        ) {
+                            MyProfile(navController, mainViewModel)
+                        }
+
+                        composable(
+                            "profile/{uid}"
+                        ) {
+                            val uid = navController.currentBackStackEntry?.arguments?.getString("uid")
+
+                            if(uid != null) {
+                                val user = mainViewModel.users.value.first {
+                                    it.uid == uid
+                                }
+                                ProfileScreen(navController, user)
+                            }
                         }
 
                         composable(
