@@ -15,6 +15,14 @@
       },
       "oauth_client": [
         {
+          "client_id": "91794365719-6nogk63vbj6etnfgio9mblh5rk80fmpk.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "me.siddheshkothadi.chat",
+            "certificate_hash": "6e6d7224b5bf770289cc193c6327b3ff027703d1"
+          }
+        },
+        {
           "client_id": "91794365719-fn0c30j3sqfstf3bf50ilkbmtfs3crl0.apps.googleusercontent.com",
           "client_type": 3
         }
