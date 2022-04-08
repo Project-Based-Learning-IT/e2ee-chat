@@ -15,11 +15,17 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.core.view.WindowCompat
+import androidx.navigation.navArgument
 import com.google.accompanist.navigation.animation.AnimatedNavHost
 import com.google.accompanist.navigation.animation.composable
 import com.google.accompanist.navigation.animation.rememberAnimatedNavController
 import com.google.accompanist.systemuicontroller.rememberSystemUiController
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.auth.ktx.auth
+import com.google.firebase.ktx.Firebase
+import me.siddheshkothadi.chat.ui.screens.ChatListScreen
 import me.siddheshkothadi.chat.ui.screens.ChatScreen
+import me.siddheshkothadi.chat.ui.screens.LoggedOutScreen
 import me.siddheshkothadi.chat.ui.screens.LoginScreen
 import me.siddheshkothadi.chat.ui.theme.ChatTheme
 import java.math.BigInteger
@@ -29,6 +35,8 @@ import java.security.interfaces.RSAPublicKey
 import java.security.spec.*
 
 class MainActivity : ComponentActivity() {
+    private val mainViewModel: MainViewModel by viewModels()
+
     @OptIn(ExperimentalMaterial3Api::class,
         androidx.compose.animation.ExperimentalAnimationApi::class
     )
@@ -37,13 +45,13 @@ class MainActivity : ComponentActivity() {
         installSplashScreen()
         super.onCreate(savedInstanceState)
 
-        val mainViewModel: MainViewModel by viewModels()
-
         setContent {
             val systemUiController = rememberSystemUiController()
             val useDarkIcons = !isSystemInDarkTheme()
 
             val navController = rememberAnimatedNavController()
+
+            val isSignedIn by mainViewModel.isSignedIn.collectAsState()
 
             SideEffect {
                 systemUiController.setSystemBarsColor(
@@ -56,19 +64,33 @@ class MainActivity : ComponentActivity() {
                 Surface(
                     modifier = Modifier.fillMaxSize()
                 ) {
-                    AnimatedNavHost(navController, startDestination = "login") {
+                    AnimatedNavHost(navController, startDestination = if(isSignedIn) "chatList" else "login") {
                         composable(
                             "login"
                         ) {
-                            LoginScreen(navController)
+                            LoggedOutScreen(navController, mainViewModel)
                         }
 
                         composable(
-                            "chat/{name}"
+                            "chatList"
                         ) {
-                            val name = navController.currentBackStackEntry?.arguments?.getString("name")
-                            if (name != null) {
-                                ChatScreen(navHostController = navController, name = name, mainViewModel)
+                            ChatListScreen(navController, mainViewModel)
+                        }
+
+                        composable(
+                            "chat/{uid}"
+                        ) {
+                            val uid = navController.currentBackStackEntry?.arguments?.getString("uid")
+
+                            if (uid != null) {
+                                val user = mainViewModel.users.value.first {
+                                    it.uid == uid
+                                }
+                                ChatScreen(
+                                    navHostController = navController,
+                                    mainViewModel = mainViewModel,
+                                    user = user,
+                                )
                             }
                         }
                     }

@@ -2,57 +2,129 @@ package me.siddheshkothadi.chat
 
 import android.util.Log
 import androidx.compose.runtime.mutableStateOf
-import androidx.lifecycle.LiveData
-import androidx.lifecycle.MutableLiveData
-import androidx.lifecycle.Transformations
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import com.google.android.gms.tasks.Tasks
+import com.google.firebase.auth.AuthCredential
+import com.google.firebase.auth.ktx.auth
 import com.google.firebase.database.DataSnapshot
 import com.google.firebase.database.DatabaseError
 import com.google.firebase.database.ValueEventListener
 import com.google.firebase.database.ktx.database
 import com.google.firebase.database.ktx.getValue
 import com.google.firebase.ktx.Firebase
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.launch
 import me.siddheshkothadi.chat.model.Message
+import me.siddheshkothadi.chat.model.User
+import java.security.KeyPairGenerator
 
 class MainViewModel : ViewModel() {
+    private val auth = Firebase.auth
+
+    val isSignedIn = MutableStateFlow(auth.currentUser != null)
+    val isUserListLoading = MutableStateFlow(false)
+    val areMessagesLoading = MutableStateFlow(false)
+
     private val database = Firebase.database
-    private val chatRef = database.getReference("chat")
+    private val chatRef = database.getReference("chats")
+    private val userRef = database.getReference("users")
+    private val privateKeyRef = database.getReference("privateKeys")
 
-    private val _chats = MutableLiveData(listOf<Message>())
-    val chats: LiveData<List<Message>>
-        get() {
-            return Transformations.map(_chats) { chatList ->
-                chatList.map {
-                    val receiver = it.to
-                    val decryptionKey = if (receiver == "Alice") alicePrivate else bobPrivate
-                    val decryptedContent = RSAUtils.decrypt(it.content, decryptionKey)
+    private val currentUserPrivateKey = MutableStateFlow<String>("")
+    private val otherUserPrivateKey = MutableStateFlow<String>("")
 
-                    Message(it.from, it.to, it.timestamp, decryptedContent)
-                }.sortedByDescending { it.timestamp }
-            }
+    private val _chats = MutableStateFlow<List<Message>>(listOf())
+    val chats: Flow<List<Message>>
+        get() = _chats.map { list ->
+            list.map {
+                val receiver = it.to
+                val privateKey = if(receiver == auth.currentUser?.uid) currentUserPrivateKey.value else otherUserPrivateKey.value
+                val decryptedText = RSAUtils.decrypt(it.content, privateKey)
+
+                Message(
+                    from = it.from,
+                    to = it.to,
+                    timestamp = it.timestamp,
+                    content = decryptedText
+                )
+            }.sortedByDescending { it.timestamp }
         }
+
+    private val messageListener = object : ValueEventListener {
+        override fun onDataChange(dataSnapshot: DataSnapshot) {
+            areMessagesLoading.value = true
+            val messages = dataSnapshot.getValue<List<Message>>()
+
+            if (messages.isNullOrEmpty()) {
+                _chats.value = listOf()
+            } else {
+                val currUserUid = auth.currentUser?.uid
+                val otherUserUid =
+                    if (messages[0].to == currUserUid) messages[0].from else messages[0].to
+
+                if (currUserUid != null) {
+                    privateKeyRef.child(currUserUid).get().addOnSuccessListener { currentPrivateKeyDS ->
+                        val currPrivateKey = currentPrivateKeyDS.getValue(String::class.java)
+                        if (currPrivateKey != null) {
+                            currentUserPrivateKey.value = currPrivateKey
+                            privateKeyRef.child(otherUserUid).get().addOnSuccessListener { otherPrivateKeyDS ->
+                                val otherPrivateKey = otherPrivateKeyDS.getValue(String::class.java)
+                                if (otherPrivateKey != null) {
+                                    otherUserPrivateKey.value = otherPrivateKey
+                                    _chats.value = messages
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            areMessagesLoading.value = false
+        }
+
+        override fun onCancelled(databaseError: DatabaseError) {
+            Log.w("Message", "loadPost:onCancelled", databaseError.toException())
+        }
+    }
 
     val textState = mutableStateOf("")
 
+    val users = mutableStateOf<List<User>>(listOf())
+
     init {
-        chatRef.addValueEventListener(object : ValueEventListener {
-            override fun onDataChange(snapshot: DataSnapshot) {
-                val value =
-                    snapshot.getValue<MutableList<Message>>() ?: listOf<Message>().toMutableList()
-                Log.d("MainViewModel", "Value is: $value")
+        auth.addAuthStateListener {
+            Log.i("Auth", "Signed In State: ${it.currentUser != null}")
+            it.currentUser?.let { userData ->
+                Log.i("Auth", userData.email.toString())
+                userRef.child(userData.uid).get().addOnSuccessListener { data ->
+                    if (data.value == null) {
+                        val keyPairGenerator = KeyPairGenerator.getInstance("RSA")
+                        val keyPair = keyPairGenerator.generateKeyPair()
+                        val publicKey = RSAUtils.keyToEncodedString(keyPair.public)
+                        val privateKey = RSAUtils.keyToEncodedString(keyPair.private)
 
-                _chats.value = value
-            }
+                        val user = User(
+                            uid = userData.uid,
+                            displayName = userData.displayName.toString(),
+                            email = userData.email.toString(),
+                            photoUrl = userData.photoUrl.toString(),
+                            publicKey = publicKey
+                        )
 
-            override fun onCancelled(error: DatabaseError) {
-                Log.w("MainViewModel", "Failed to read value.", error.toException())
+                        userRef.child(userData.uid).setValue(user).addOnSuccessListener {
+                            privateKeyRef.child(userData.uid).setValue(privateKey)
+                        }
+                    }
+                }
             }
-        })
+            isSignedIn.value = (it.currentUser != null)
+        }
     }
 
-    fun addTextToChat(text: String, name: String) {
-        val chatList = _chats.value?.toMutableList() ?: emptyList<Message>().toMutableList()
-        val encryptionKey = if (name == "Alice") alicePublic else bobPublic
+    fun addTextToChat(text: String, from: String, to: User, key: String) {
+        val chatList = _chats.value.toMutableList()
 
         val letters = text.split("")
         val listOfText = letters.chunked(85).map {
@@ -60,13 +132,13 @@ class MainViewModel : ViewModel() {
         }
 
         listOfText.forEach {
-            if(it.isNotBlank()) {
-                val encryptedText = RSAUtils.encrypt(it, encryptionKey)
+            if (it.isNotBlank()) {
+                val encryptedText = RSAUtils.encrypt(it, to.publicKey)
 
                 chatList.add(
                     Message(
-                        from = if (name == "Alice") "Bob" else "Alice",
-                        to = name,
+                        from = from,
+                        to = to.uid,
                         timestamp = System.currentTimeMillis().toString(),
                         content = encryptedText
                     )
@@ -74,7 +146,7 @@ class MainViewModel : ViewModel() {
             }
         }
 
-        chatRef.setValue(chatList).addOnSuccessListener {
+        chatRef.child(key).setValue(chatList).addOnSuccessListener {
             textState.value = ""
         }.addOnCanceledListener {
             Log.e("MainViewModel", "Error")
@@ -83,5 +155,41 @@ class MainViewModel : ViewModel() {
 
     fun setTextState(it: String) {
         textState.value = it
+    }
+
+    fun signWithCredential(credential: AuthCredential) = viewModelScope.launch {
+        try {
+            Firebase.auth.signInWithCredential(credential)
+        } catch (e: Exception) {
+            Log.e("Auth", e.toString())
+        }
+    }
+
+    fun signOut() {
+        auth.signOut()
+    }
+
+    fun fetchUsers() {
+        isUserListLoading.value = true
+        userRef.get().addOnSuccessListener { dataSnapshot ->
+            users.value = dataSnapshot.children.map { child ->
+                child.getValue(User::class.java)!!
+            }.filter { filterUser ->
+                auth.currentUser != null && auth.currentUser!!.uid != filterUser.uid
+            }
+            isUserListLoading.value = false
+        }
+    }
+
+    fun getCurrentUserUid(): String {
+        return auth.currentUser?.uid ?: ""
+    }
+
+    fun addMessageEventListener(key: String) {
+        chatRef.child(key).addValueEventListener(messageListener)
+    }
+
+    fun removeMessageEventListener(key: String) {
+        chatRef.child(key).removeEventListener(messageListener)
     }
 }

@@ -34,4 +34,8 @@ object RSAUtils {
         val pubKeySpec = X509EncodedKeySpec(Base64.decode(publicStr, Base64.DEFAULT))
         return keyFactory.generatePublic(pubKeySpec)
     }
+
+    fun keyToEncodedString(key: Key): String {
+        return Base64.encodeToString(key.encoded, Base64.DEFAULT)
+    }
 }
