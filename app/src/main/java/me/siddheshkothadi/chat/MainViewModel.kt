@@ -1,9 +1,14 @@
 package me.siddheshkothadi.chat
 
+import android.app.Application
+import android.content.Context
 import android.util.Log
+import android.widget.Toast
 import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.google.android.gms.auth.api.signin.GoogleSignIn
+import com.google.android.gms.auth.api.signin.GoogleSignInOptions
 import com.google.android.gms.tasks.Tasks
 import com.google.firebase.auth.AuthCredential
 import com.google.firebase.auth.ktx.auth
@@ -27,6 +32,7 @@ class MainViewModel : ViewModel() {
     val isSignedIn = MutableStateFlow(auth.currentUser != null)
     val isUserListLoading = MutableStateFlow(false)
     val areMessagesLoading = MutableStateFlow(false)
+    val isSigningIn = MutableStateFlow(false)
 
     private val database = Firebase.database
     private val chatRef = database.getReference("chats")
@@ -35,6 +41,11 @@ class MainViewModel : ViewModel() {
 
     private val currentUserPrivateKey = MutableStateFlow<String>("")
     private val otherUserPrivateKey = MutableStateFlow<String>("")
+
+    val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
+        .requestIdToken("91794365719-fn0c30j3sqfstf3bf50ilkbmtfs3crl0.apps.googleusercontent.com")
+        .requestEmail()
+        .build()
 
     private val _chats = MutableStateFlow<List<Message>>(listOf())
     val chats: Flow<List<Message>>
@@ -95,6 +106,7 @@ class MainViewModel : ViewModel() {
 
     init {
         auth.addAuthStateListener {
+            isSigningIn.value = true
             Log.i("Auth", "Signed In State: ${it.currentUser != null}")
             it.currentUser?.let { userData ->
                 Log.i("Auth", userData.email.toString())
@@ -119,6 +131,7 @@ class MainViewModel : ViewModel() {
                     }
                 }
             }
+            isSigningIn.value = false
             isSignedIn.value = (it.currentUser != null)
         }
     }
@@ -157,11 +170,16 @@ class MainViewModel : ViewModel() {
         textState.value = it
     }
 
-    fun signWithCredential(credential: AuthCredential) = viewModelScope.launch {
+    fun signWithCredential(credential: AuthCredential, context: Context) = viewModelScope.launch {
         try {
-            Firebase.auth.signInWithCredential(credential)
+            isSigningIn.value = true
+            Firebase.auth.signInWithCredential(credential).addOnSuccessListener {
+                isSigningIn.value = false
+                Toast.makeText(context, "Login Successful", Toast.LENGTH_LONG).show()
+            }
         } catch (e: Exception) {
             Log.e("Auth", e.toString())
+            isSigningIn.value = false
         }
     }
 

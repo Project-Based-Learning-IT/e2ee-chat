@@ -68,8 +68,8 @@ fun ChatScreen(
                             model = user.photoUrl,
                             contentDescription = "User Photo",
                             modifier = Modifier
-                                .height(24.dp)
-                                .width(24.dp)
+                                .height(30.dp)
+                                .width(30.dp)
                                 .clip(CircleShape)
                                 .clickable {
                                     // TODO: Go to profile page
