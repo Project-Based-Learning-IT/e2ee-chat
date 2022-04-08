@@ -45,6 +45,10 @@ jobs:
       # Grant Permission to Execute gradlew
       - name: Grant Permission to Execute
         run: chmod +x gradlew
+        
+      # Generate signing report
+      - name: Generate Signing report
+        run: bash ./gradlew signingReport
       
       # Build
       - name: Build
