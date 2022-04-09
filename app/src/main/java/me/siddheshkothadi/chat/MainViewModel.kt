@@ -136,34 +136,25 @@ class MainViewModel : ViewModel() {
     }
 
     fun addTextToChat(text: String, from: String, to: User, key: String) {
-        val chatList = _chats.value.toMutableList()
+        if (text.isNotBlank()) {
+            val chatList = _chats.value.toMutableList()
+            val encryptedText = AESUtils.encrypt(text, secretKey.value)
+            val encryptedSecretKey = RSAUtils.encrypt(secretKey.value, to.publicKey)
 
-        val letters = text.split("")
-        val listOfText = letters.chunked(85).map {
-            it.joinToString("")
-        }
-
-        listOfText.forEach {
-            if (it.isNotBlank()) {
-                val encryptedText = AESUtils.encrypt(it, secretKey.value)
-                val encryptedSecretKey = RSAUtils.encrypt(secretKey.value, to.publicKey)
-
-                chatList.add(
-                    Message(
-                        from = from,
-                        to = to.uid,
-                        timestamp = System.currentTimeMillis().toString(),
-                        content = encryptedText,
-                        secretKey = encryptedSecretKey
-                    )
+            chatList.add(
+                Message(
+                    from = from,
+                    to = to.uid,
+                    timestamp = System.currentTimeMillis().toString(),
+                    content = encryptedText,
+                    secretKey = encryptedSecretKey
                 )
+            )
+            chatRef.child(key).setValue(chatList).addOnSuccessListener {
+                textState.value = ""
+            }.addOnCanceledListener {
+                Log.e("MainViewModel", "Error")
             }
-        }
-
-        chatRef.child(key).setValue(chatList).addOnSuccessListener {
-            textState.value = ""
-        }.addOnCanceledListener {
-            Log.e("MainViewModel", "Error")
         }
     }
 
