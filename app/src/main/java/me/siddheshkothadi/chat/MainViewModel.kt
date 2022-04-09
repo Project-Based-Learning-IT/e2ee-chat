@@ -220,4 +220,8 @@ class MainViewModel : ViewModel() {
             email = email
         )
     }
+
+    fun clearChats() {
+        _chats.value = listOf()
+    }
 }

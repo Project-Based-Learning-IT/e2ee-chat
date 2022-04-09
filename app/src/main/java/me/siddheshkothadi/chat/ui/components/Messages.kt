@@ -29,6 +29,7 @@ fun Messages(
         mainViewModel.addMessageEventListener(key)
         onDispose {
             mainViewModel.removeMessageEventListener(key)
+            mainViewModel.clearChats()
         }
     }
 
