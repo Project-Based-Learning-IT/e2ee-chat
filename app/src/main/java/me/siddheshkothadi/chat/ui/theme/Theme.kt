@@ -94,7 +94,7 @@ fun ChatTheme(
 
     MaterialTheme(
         colorScheme = myColorScheme,
-        typography = JetchatTypography
+        typography = ChatTypography
     ) {
         // TODO (M3): MaterialTheme doesn't provide LocalIndication, remove when it does
         val rippleIndication = rememberRipple()

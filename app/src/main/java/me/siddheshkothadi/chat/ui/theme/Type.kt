@@ -20,7 +20,7 @@ private val KarlaFontFamily = FontFamily(
     Font(R.font.karla_bold, FontWeight.Bold)
 )
 
-val JetchatTypography = Typography(
+val ChatTypography = Typography(
     displayLarge = TextStyle(
         fontFamily = MontserratFontFamily,
         fontWeight = FontWeight.Light,
