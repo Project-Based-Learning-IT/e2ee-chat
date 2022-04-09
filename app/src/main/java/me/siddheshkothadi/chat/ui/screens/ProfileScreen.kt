@@ -1,9 +1,7 @@
 package me.siddheshkothadi.chat.ui.screens
 
 import androidx.compose.animation.rememberSplineBasedDecay
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
@@ -12,9 +10,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.input.nestedscroll.nestedScroll
-import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -78,7 +76,12 @@ fun ProfileScreen(
                     .clip(CircleShape)
             )
             Spacer(Modifier.height(24.dp))
-            Text(user.email, fontSize = 20.sp, fontWeight = FontWeight.W600)
+            Text(
+                text = user.email,
+                fontSize = 20.sp,
+                fontWeight = FontWeight.W600,
+                modifier = Modifier.alpha(0.75f)
+            )
         }
     }
 }

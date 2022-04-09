@@ -10,6 +10,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.text.font.FontWeight
@@ -19,7 +20,6 @@ import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
 import coil.compose.AsyncImage
 import me.siddheshkothadi.chat.MainViewModel
-import me.siddheshkothadi.chat.model.User
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -78,7 +78,12 @@ fun MyProfile(
                     .clip(CircleShape)
             )
             Spacer(Modifier.height(24.dp))
-            Text(user.email, fontSize = 20.sp, fontWeight = FontWeight.W600)
+            Text(
+                text = user.email,
+                fontSize = 20.sp,
+                fontWeight = FontWeight.W600,
+                modifier = Modifier.alpha(0.75f)
+            )
         }
     }
 }
