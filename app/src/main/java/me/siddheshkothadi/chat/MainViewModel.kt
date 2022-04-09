@@ -138,6 +138,7 @@ class MainViewModel : ViewModel() {
 
     fun addTextToChat(text: String, from: String, to: User, key: String) {
         if (text.isNotBlank()) {
+            areMessagesLoading.value = true
             val chatList = _chats.value.toMutableList()
             val encryptedText = AESUtils.encrypt(text, secretKey.value)
             val encryptedSecretKey = RSAUtils.encrypt(secretKey.value, to.publicKey)
@@ -153,8 +154,10 @@ class MainViewModel : ViewModel() {
             )
             chatRef.child(key).setValue(chatList).addOnSuccessListener {
                 textState.value = ""
+                areMessagesLoading.value = false
             }.addOnCanceledListener {
                 Log.e("MainViewModel", "Error")
+                areMessagesLoading.value = false
             }
         }
     }
