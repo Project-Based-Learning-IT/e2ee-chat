@@ -28,7 +28,6 @@ fun Messages(
     DisposableEffect(key) {
         mainViewModel.addMessageEventListener(key)
         onDispose {
-            Log.i("Auth", "onDispose Called")
             mainViewModel.removeMessageEventListener(key)
         }
     }

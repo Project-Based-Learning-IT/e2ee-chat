@@ -53,7 +53,7 @@ fun LoggedOutScreen(
                 val credential = GoogleAuthProvider.getCredential(account.idToken!!, null)
                 mainViewModel.signWithCredential(credential, context)
             } catch (e: ApiException) {
-                Log.w("TAG", "Google sign in failed", e)
+                Log.w("Auth", "Google sign in failed", e)
             }
         }
 

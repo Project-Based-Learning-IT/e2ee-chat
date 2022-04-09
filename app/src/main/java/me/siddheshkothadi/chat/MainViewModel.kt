@@ -26,13 +26,15 @@ import me.siddheshkothadi.chat.utils.RSAUtils
 
 class MainViewModel : ViewModel() {
     private val auth = Firebase.auth
+    private val database = Firebase.database
 
     val isSignedIn = MutableStateFlow(auth.currentUser != null)
     val isUserListLoading = MutableStateFlow(false)
     val areMessagesLoading = MutableStateFlow(false)
+    val textState = mutableStateOf("")
+    val users = mutableStateOf<List<User>>(listOf())
     val isSigningIn = MutableStateFlow(false)
 
-    private val database = Firebase.database
     private val chatRef = database.getReference("chats")
     private val userRef = database.getReference("users")
     private val privateKeyRef = database.getReference("privateKeys")
@@ -41,8 +43,10 @@ class MainViewModel : ViewModel() {
     private val privateKey = MutableStateFlow<String>("")
     private val secretKey = MutableStateFlow<String>("")
 
+    private val clientIDWeb = "91794365719-fn0c30j3sqfstf3bf50ilkbmtfs3crl0.apps.googleusercontent.com"
+
     val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
-        .requestIdToken("91794365719-fn0c30j3sqfstf3bf50ilkbmtfs3crl0.apps.googleusercontent.com")
+        .requestIdToken(clientIDWeb)
         .requestEmail()
         .build()
 
@@ -77,17 +81,13 @@ class MainViewModel : ViewModel() {
         }
 
         override fun onCancelled(databaseError: DatabaseError) {
-            Log.w("Message", "loadPost:onCancelled", databaseError.toException())
+            Log.w("onCancelled", "loadPost:onCancelled", databaseError.toException())
         }
     }
-
-    val textState = mutableStateOf("")
-    val users = mutableStateOf<List<User>>(listOf())
 
     init {
         auth.addAuthStateListener {
             isSigningIn.value = true
-            Log.i("Auth", "Signed In State: ${it.currentUser != null}")
             it.currentUser?.let { userData ->
                 userRef.child(userData.uid).get().addOnSuccessListener { data ->
                     if (data.value == null) {
