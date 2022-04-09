@@ -21,6 +21,8 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import me.siddheshkothadi.chat.model.Message
 import me.siddheshkothadi.chat.model.User
+import me.siddheshkothadi.chat.utils.AESUtils
+import me.siddheshkothadi.chat.utils.RSAUtils
 
 class MainViewModel : ViewModel() {
     private val auth = Firebase.auth
@@ -70,27 +72,7 @@ class MainViewModel : ViewModel() {
         override fun onDataChange(dataSnapshot: DataSnapshot) {
             areMessagesLoading.value = true
             val messages = dataSnapshot.getValue<List<Message>>()
-
-            val currUserUid = auth.currentUser?.uid
-
-            if (currUserUid != null) {
-                privateKeyRef.child(currUserUid).get()
-                    .addOnSuccessListener { currentPrivateKeyDS ->
-                        val currentPrivateKey = currentPrivateKeyDS.getValue(String::class.java)
-                        if (currentPrivateKey != null) {
-                            privateKey.value = currentPrivateKey
-                            secretKeyRef.child(currUserUid).get()
-                                .addOnSuccessListener { currentSecretKeyDS ->
-                                    val currentSecretKey =
-                                        currentSecretKeyDS.getValue(String::class.java)
-                                    if (currentSecretKey != null) {
-                                        secretKey.value = currentSecretKey
-                                        _chats.value = messages ?: listOf()
-                                    }
-                                }
-                        }
-                    }
-            }
+            _chats.value = messages ?: listOf()
             areMessagesLoading.value = false
         }
 
@@ -100,7 +82,6 @@ class MainViewModel : ViewModel() {
     }
 
     val textState = mutableStateOf("")
-
     val users = mutableStateOf<List<User>>(listOf())
 
     init {
@@ -110,23 +91,43 @@ class MainViewModel : ViewModel() {
             it.currentUser?.let { userData ->
                 userRef.child(userData.uid).get().addOnSuccessListener { data ->
                     if (data.value == null) {
-                        val (publicKey, privateKey) = RSAUtils.getKeyPair()
-                        val secretKey = AESUtils.getSecretKey()
+                        val (publicKeyRSA, privateKeyRSA) = RSAUtils.getKeyPair()
+                        val secretKeyAES = AESUtils.getSecretKey()
+
+                        privateKey.value = privateKeyRSA
+                        secretKey.value = secretKeyAES
 
                         val user = User(
                             uid = userData.uid,
                             displayName = userData.displayName.toString(),
                             email = userData.email.toString(),
                             photoUrl = userData.photoUrl.toString(),
-                            publicKey = publicKey
+                            publicKey = publicKeyRSA
                         )
 
                         userRef.child(userData.uid).setValue(user).addOnSuccessListener {
-                            privateKeyRef.child(userData.uid).setValue(privateKey)
+                            privateKeyRef.child(userData.uid).setValue(privateKeyRSA)
                                 .addOnSuccessListener {
-                                    secretKeyRef.child(userData.uid).setValue(secretKey)
+                                    secretKeyRef.child(userData.uid).setValue(secretKeyAES)
                                 }
                         }
+                    } else {
+                        privateKeyRef.child(userData.uid).get()
+                            .addOnSuccessListener { currentPrivateKeyDS ->
+                                val currentPrivateKey =
+                                    currentPrivateKeyDS.getValue(String::class.java)
+                                if (currentPrivateKey != null) {
+                                    privateKey.value = currentPrivateKey
+                                    secretKeyRef.child(userData.uid).get()
+                                        .addOnSuccessListener { currentSecretKeyDS ->
+                                            val currentSecretKey =
+                                                currentSecretKeyDS.getValue(String::class.java)
+                                            if (currentSecretKey != null) {
+                                                secretKey.value = currentSecretKey
+                                            }
+                                        }
+                                }
+                            }
                     }
                 }
             }
@@ -177,6 +178,8 @@ class MainViewModel : ViewModel() {
 
     fun signOut() {
         auth.signOut()
+        privateKey.value = ""
+        secretKey.value = ""
     }
 
     fun fetchUsers() {

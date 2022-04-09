@@ -1,11 +1,10 @@
-package me.siddheshkothadi.chat
+package me.siddheshkothadi.chat.utils
 
 import android.util.Base64
 import java.nio.charset.StandardCharsets
 import java.security.Key
 import javax.crypto.Cipher
 import javax.crypto.KeyGenerator
-import javax.crypto.SecretKey
 import javax.crypto.spec.IvParameterSpec
 import javax.crypto.spec.SecretKeySpec
 
