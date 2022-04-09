@@ -12,9 +12,11 @@ import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Send
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
@@ -36,6 +38,7 @@ fun ChatScreen(
     mainViewModel: MainViewModel,
     user: User
 ) {
+    val areMessagesLoading by mainViewModel.areMessagesLoading.collectAsState()
     val currentUserUid = mainViewModel.getCurrentUserUid()
     val key = if(currentUserUid < user.uid) "${currentUserUid}__join__${user.uid}" else "${user.uid}__join__${currentUserUid}"
 
@@ -106,11 +109,9 @@ fun ChatScreen(
                 ) {
                     Spacer(Modifier.width(10.dp))
                     CircularProgressIndicator(
-                        progress = textState.length / 84.toFloat(),
                         modifier = Modifier
-                            .height(24.dp)
-                            .width(24.dp),
-                        color = if (textState.length > 84) Color.Red else MaterialTheme.colorScheme.primary
+                            .height(20.dp)
+                            .width(20.dp).alpha(if(areMessagesLoading) 1f else 0f)
                     )
                     BasicTextField(
                         value = textState,

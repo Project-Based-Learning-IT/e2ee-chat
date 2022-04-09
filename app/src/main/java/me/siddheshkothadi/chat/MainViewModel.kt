@@ -1,15 +1,12 @@
 package me.siddheshkothadi.chat
 
-import android.app.Application
 import android.content.Context
 import android.util.Log
 import android.widget.Toast
 import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.android.gms.auth.api.signin.GoogleSignInOptions
-import com.google.android.gms.tasks.Tasks
 import com.google.firebase.auth.AuthCredential
 import com.google.firebase.auth.ktx.auth
 import com.google.firebase.database.DataSnapshot
@@ -24,26 +21,32 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import me.siddheshkothadi.chat.model.Message
 import me.siddheshkothadi.chat.model.User
-import java.security.KeyPairGenerator
+import me.siddheshkothadi.chat.utils.AESUtils
+import me.siddheshkothadi.chat.utils.RSAUtils
 
 class MainViewModel : ViewModel() {
     private val auth = Firebase.auth
+    private val database = Firebase.database
 
     val isSignedIn = MutableStateFlow(auth.currentUser != null)
     val isUserListLoading = MutableStateFlow(false)
     val areMessagesLoading = MutableStateFlow(false)
+    val textState = mutableStateOf("")
+    val users = mutableStateOf<List<User>>(listOf())
     val isSigningIn = MutableStateFlow(false)
 
-    private val database = Firebase.database
     private val chatRef = database.getReference("chats")
     private val userRef = database.getReference("users")
     private val privateKeyRef = database.getReference("privateKeys")
+    private val secretKeyRef = database.getReference("secretKeys")
 
-    private val currentUserPrivateKey = MutableStateFlow<String>("")
-    private val otherUserPrivateKey = MutableStateFlow<String>("")
+    private val privateKey = MutableStateFlow<String>("")
+    private val secretKey = MutableStateFlow<String>("")
+
+    private val clientIDWeb = "91794365719-fn0c30j3sqfstf3bf50ilkbmtfs3crl0.apps.googleusercontent.com"
 
     val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
-        .requestIdToken("91794365719-fn0c30j3sqfstf3bf50ilkbmtfs3crl0.apps.googleusercontent.com")
+        .requestIdToken(clientIDWeb)
         .requestEmail()
         .build()
 
@@ -52,14 +55,19 @@ class MainViewModel : ViewModel() {
         get() = _chats.map { list ->
             list.map {
                 val receiver = it.to
-                val privateKey = if(receiver == auth.currentUser?.uid) currentUserPrivateKey.value else otherUserPrivateKey.value
-                val decryptedText = RSAUtils.decrypt(it.content, privateKey)
+                val decryptionSecretKey =
+                    if (receiver == auth.currentUser?.uid) RSAUtils.decrypt(
+                        it.secretKey,
+                        privateKey.value
+                    ) else secretKey.value
+
+                val decryptedText = AESUtils.decrypt(it.content, decryptionSecretKey)
 
                 Message(
                     from = it.from,
                     to = it.to,
                     timestamp = it.timestamp,
-                    content = decryptedText
+                    content = decryptedText,
                 )
             }.sortedByDescending { it.timestamp }
         }
@@ -68,66 +76,58 @@ class MainViewModel : ViewModel() {
         override fun onDataChange(dataSnapshot: DataSnapshot) {
             areMessagesLoading.value = true
             val messages = dataSnapshot.getValue<List<Message>>()
-
-            if (messages.isNullOrEmpty()) {
-                _chats.value = listOf()
-            } else {
-                val currUserUid = auth.currentUser?.uid
-                val otherUserUid =
-                    if (messages[0].to == currUserUid) messages[0].from else messages[0].to
-
-                if (currUserUid != null) {
-                    privateKeyRef.child(currUserUid).get().addOnSuccessListener { currentPrivateKeyDS ->
-                        val currPrivateKey = currentPrivateKeyDS.getValue(String::class.java)
-                        if (currPrivateKey != null) {
-                            currentUserPrivateKey.value = currPrivateKey
-                            privateKeyRef.child(otherUserUid).get().addOnSuccessListener { otherPrivateKeyDS ->
-                                val otherPrivateKey = otherPrivateKeyDS.getValue(String::class.java)
-                                if (otherPrivateKey != null) {
-                                    otherUserPrivateKey.value = otherPrivateKey
-                                    _chats.value = messages
-                                }
-                            }
-                        }
-                    }
-                }
-            }
+            _chats.value = messages ?: listOf()
             areMessagesLoading.value = false
         }
 
         override fun onCancelled(databaseError: DatabaseError) {
-            Log.w("Message", "loadPost:onCancelled", databaseError.toException())
+            Log.w("onCancelled", "loadPost:onCancelled", databaseError.toException())
         }
     }
-
-    val textState = mutableStateOf("")
-
-    val users = mutableStateOf<List<User>>(listOf())
 
     init {
         auth.addAuthStateListener {
             isSigningIn.value = true
-            Log.i("Auth", "Signed In State: ${it.currentUser != null}")
             it.currentUser?.let { userData ->
-                Log.i("Auth", userData.email.toString())
                 userRef.child(userData.uid).get().addOnSuccessListener { data ->
                     if (data.value == null) {
-                        val keyPairGenerator = KeyPairGenerator.getInstance("RSA")
-                        val keyPair = keyPairGenerator.generateKeyPair()
-                        val publicKey = RSAUtils.keyToEncodedString(keyPair.public)
-                        val privateKey = RSAUtils.keyToEncodedString(keyPair.private)
+                        val (publicKeyRSA, privateKeyRSA) = RSAUtils.getKeyPair()
+                        val secretKeyAES = AESUtils.getSecretKey()
+
+                        privateKey.value = privateKeyRSA
+                        secretKey.value = secretKeyAES
 
                         val user = User(
                             uid = userData.uid,
                             displayName = userData.displayName.toString(),
                             email = userData.email.toString(),
                             photoUrl = userData.photoUrl.toString(),
-                            publicKey = publicKey
+                            publicKey = publicKeyRSA
                         )
 
                         userRef.child(userData.uid).setValue(user).addOnSuccessListener {
-                            privateKeyRef.child(userData.uid).setValue(privateKey)
+                            privateKeyRef.child(userData.uid).setValue(privateKeyRSA)
+                                .addOnSuccessListener {
+                                    secretKeyRef.child(userData.uid).setValue(secretKeyAES)
+                                }
                         }
+                    } else {
+                        privateKeyRef.child(userData.uid).get()
+                            .addOnSuccessListener { currentPrivateKeyDS ->
+                                val currentPrivateKey =
+                                    currentPrivateKeyDS.getValue(String::class.java)
+                                if (currentPrivateKey != null) {
+                                    privateKey.value = currentPrivateKey
+                                    secretKeyRef.child(userData.uid).get()
+                                        .addOnSuccessListener { currentSecretKeyDS ->
+                                            val currentSecretKey =
+                                                currentSecretKeyDS.getValue(String::class.java)
+                                            if (currentSecretKey != null) {
+                                                secretKey.value = currentSecretKey
+                                            }
+                                        }
+                                }
+                            }
                     }
                 }
             }
@@ -137,32 +137,28 @@ class MainViewModel : ViewModel() {
     }
 
     fun addTextToChat(text: String, from: String, to: User, key: String) {
-        val chatList = _chats.value.toMutableList()
+        if (text.isNotBlank()) {
+            areMessagesLoading.value = true
+            val chatList = _chats.value.toMutableList()
+            val encryptedText = AESUtils.encrypt(text, secretKey.value)
+            val encryptedSecretKey = RSAUtils.encrypt(secretKey.value, to.publicKey)
 
-        val letters = text.split("")
-        val listOfText = letters.chunked(85).map {
-            it.joinToString("")
-        }
-
-        listOfText.forEach {
-            if (it.isNotBlank()) {
-                val encryptedText = RSAUtils.encrypt(it, to.publicKey)
-
-                chatList.add(
-                    Message(
-                        from = from,
-                        to = to.uid,
-                        timestamp = System.currentTimeMillis().toString(),
-                        content = encryptedText
-                    )
+            chatList.add(
+                Message(
+                    from = from,
+                    to = to.uid,
+                    timestamp = System.currentTimeMillis().toString(),
+                    content = encryptedText,
+                    secretKey = encryptedSecretKey
                 )
+            )
+            chatRef.child(key).setValue(chatList).addOnSuccessListener {
+                textState.value = ""
+                areMessagesLoading.value = false
+            }.addOnCanceledListener {
+                Log.e("MainViewModel", "Error")
+                areMessagesLoading.value = false
             }
-        }
-
-        chatRef.child(key).setValue(chatList).addOnSuccessListener {
-            textState.value = ""
-        }.addOnCanceledListener {
-            Log.e("MainViewModel", "Error")
         }
     }
 
@@ -185,6 +181,8 @@ class MainViewModel : ViewModel() {
 
     fun signOut() {
         auth.signOut()
+        privateKey.value = ""
+        secretKey.value = ""
     }
 
     fun fetchUsers() {
@@ -213,7 +211,7 @@ class MainViewModel : ViewModel() {
 
     fun getCurrentUser(): User {
         val displayName = auth.currentUser?.displayName ?: ""
-        val photoUrl = auth.currentUser?.photoUrl.toString() ?: ""
+        val photoUrl = auth.currentUser?.photoUrl.toString()
         val email = auth.currentUser?.email ?: ""
 
         return User(

@@ -1,4 +1,4 @@
-package me.siddheshkothadi.chat
+package me.siddheshkothadi.chat.utils
 
 import android.util.Base64
 import java.nio.charset.StandardCharsets
@@ -10,6 +10,7 @@ import javax.crypto.Cipher
 object RSAUtils {
     private val cipher = Cipher.getInstance("RSA/ECB/OAEPWithSHA1AndMGF1Padding")
     private val keyFactory: KeyFactory = KeyFactory.getInstance("RSA")
+    private val keyPairGenerator: KeyPairGenerator = KeyPairGenerator.getInstance("RSA")
 
     fun encrypt(text: String, publicStr: String): String {
         val publicKey = generatePublicKey(publicStr)
@@ -35,7 +36,15 @@ object RSAUtils {
         return keyFactory.generatePublic(pubKeySpec)
     }
 
-    fun keyToEncodedString(key: Key): String {
+    fun getKeyPair(): Pair<String, String> {
+        val keyPair = keyPairGenerator.generateKeyPair()
+        val publicKey = keyToEncodedString(keyPair.public)
+        val privateKey = keyToEncodedString(keyPair.private)
+
+        return Pair(publicKey, privateKey)
+    }
+
+    private fun keyToEncodedString(key: Key): String {
         return Base64.encodeToString(key.encoded, Base64.DEFAULT)
     }
 }
