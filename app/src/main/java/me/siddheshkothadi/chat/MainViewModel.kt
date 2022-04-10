@@ -4,10 +4,12 @@ import android.content.Context
 import android.util.Log
 import android.widget.Toast
 import androidx.compose.runtime.mutableStateOf
+import androidx.datastore.dataStore
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.google.android.gms.auth.api.signin.GoogleSignInOptions
 import com.google.firebase.auth.AuthCredential
+import com.google.firebase.auth.FirebaseUser
 import com.google.firebase.auth.ktx.auth
 import com.google.firebase.database.DataSnapshot
 import com.google.firebase.database.DatabaseError
@@ -15,18 +17,30 @@ import com.google.firebase.database.ValueEventListener
 import com.google.firebase.database.ktx.database
 import com.google.firebase.database.ktx.getValue
 import com.google.firebase.ktx.Firebase
+import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
+import me.siddheshkothadi.chat.data.UserData
+import me.siddheshkothadi.chat.data.UserDataSerializer
 import me.siddheshkothadi.chat.model.Message
 import me.siddheshkothadi.chat.model.User
 import me.siddheshkothadi.chat.utils.AESUtils
 import me.siddheshkothadi.chat.utils.RSAUtils
+import javax.inject.Inject
 
-class MainViewModel : ViewModel() {
+@HiltViewModel
+class MainViewModel @Inject constructor(
+    private val context: ChatApplication
+) : ViewModel() {
     private val auth = Firebase.auth
     private val database = Firebase.database
+
+    private val Context.dataStore by dataStore("user-data.json", UserDataSerializer)
+
+    private val userData = MutableStateFlow(UserData())
 
     val isSignedIn = MutableStateFlow(auth.currentUser != null)
     val isUserListLoading = MutableStateFlow(false)
@@ -37,13 +51,9 @@ class MainViewModel : ViewModel() {
 
     private val chatRef = database.getReference("chats")
     private val userRef = database.getReference("users")
-    private val privateKeyRef = database.getReference("privateKeys")
-    private val secretKeyRef = database.getReference("secretKeys")
 
-    private val privateKey = MutableStateFlow<String>("")
-    private val secretKey = MutableStateFlow<String>("")
-
-    private val clientIDWeb = "91794365719-fn0c30j3sqfstf3bf50ilkbmtfs3crl0.apps.googleusercontent.com"
+    private val clientIDWeb =
+        "91794365719-fn0c30j3sqfstf3bf50ilkbmtfs3crl0.apps.googleusercontent.com"
 
     val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
         .requestIdToken(clientIDWeb)
@@ -58,8 +68,8 @@ class MainViewModel : ViewModel() {
                 val decryptionSecretKey =
                     if (receiver == auth.currentUser?.uid) RSAUtils.decrypt(
                         it.secretKey,
-                        privateKey.value
-                    ) else secretKey.value
+                        userData.value.privateKey
+                    ) else userData.value.secretKey
 
                 val decryptedText = AESUtils.decrypt(it.content, decryptionSecretKey)
 
@@ -87,52 +97,28 @@ class MainViewModel : ViewModel() {
 
     init {
         auth.addAuthStateListener {
-            isSigningIn.value = true
-            it.currentUser?.let { userData ->
-                userRef.child(userData.uid).get().addOnSuccessListener { data ->
-                    if (data.value == null) {
-                        val (publicKeyRSA, privateKeyRSA) = RSAUtils.getKeyPair()
-                        val secretKeyAES = AESUtils.getSecretKey()
-
-                        privateKey.value = privateKeyRSA
-                        secretKey.value = secretKeyAES
-
-                        val user = User(
-                            uid = userData.uid,
-                            displayName = userData.displayName.toString(),
-                            email = userData.email.toString(),
-                            photoUrl = userData.photoUrl.toString(),
-                            publicKey = publicKeyRSA
-                        )
-
-                        userRef.child(userData.uid).setValue(user).addOnSuccessListener {
-                            privateKeyRef.child(userData.uid).setValue(privateKeyRSA)
-                                .addOnSuccessListener {
-                                    secretKeyRef.child(userData.uid).setValue(secretKeyAES)
-                                }
-                        }
-                    } else {
-                        privateKeyRef.child(userData.uid).get()
-                            .addOnSuccessListener { currentPrivateKeyDS ->
-                                val currentPrivateKey =
-                                    currentPrivateKeyDS.getValue(String::class.java)
-                                if (currentPrivateKey != null) {
-                                    privateKey.value = currentPrivateKey
-                                    secretKeyRef.child(userData.uid).get()
-                                        .addOnSuccessListener { currentSecretKeyDS ->
-                                            val currentSecretKey =
-                                                currentSecretKeyDS.getValue(String::class.java)
-                                            if (currentSecretKey != null) {
-                                                secretKey.value = currentSecretKey
-                                            }
-                                        }
+            viewModelScope.launch {
+                isSigningIn.value = true
+                context.dataStore.data.first().let { userDataFromDataStore ->
+                    if (userDataFromDataStore.privateKey.isEmpty()) {
+                        Log.i("Auth", "Data Store empty")
+                        // Not previously logged in, does not contain userData
+                        it.currentUser?.let { firebaseUser ->
+                            Log.i("Auth", "Just logged in")
+                            // If just logged in, delete old data and save new data
+                            deleteChatsOfUser(firebaseUser.uid) {
+                                deleteUser(firebaseUser.uid) {
+                                    saveNewUser(firebaseUser)
                                 }
                             }
+                        }
+                    } else {
+                        userData.value = userDataFromDataStore
                     }
                 }
+                isSigningIn.value = false
+                isSignedIn.value = (it.currentUser != null)
             }
-            isSigningIn.value = false
-            isSignedIn.value = (it.currentUser != null)
         }
     }
 
@@ -140,8 +126,8 @@ class MainViewModel : ViewModel() {
         if (text.isNotBlank()) {
             areMessagesLoading.value = true
             val chatList = _chats.value.toMutableList()
-            val encryptedText = AESUtils.encrypt(text, secretKey.value)
-            val encryptedSecretKey = RSAUtils.encrypt(secretKey.value, to.publicKey)
+            val encryptedText = AESUtils.encrypt(text, userData.value.secretKey)
+            val encryptedSecretKey = RSAUtils.encrypt(userData.value.secretKey, to.publicKey)
 
             chatList.add(
                 Message(
@@ -181,8 +167,11 @@ class MainViewModel : ViewModel() {
 
     fun signOut() {
         auth.signOut()
-        privateKey.value = ""
-        secretKey.value = ""
+        deleteChatsOfUser(userData.value.user.uid) {
+            deleteUser(userData.value.user.uid) {
+                updateUserData()
+            }
+        }
     }
 
     fun fetchUsers() {
@@ -197,9 +186,7 @@ class MainViewModel : ViewModel() {
         }
     }
 
-    fun getCurrentUserUid(): String {
-        return auth.currentUser?.uid ?: ""
-    }
+    fun getCurrentUserUid(): String = userData.value.user.uid
 
     fun addMessageEventListener(key: String) {
         chatRef.child(key).addValueEventListener(messageListener)
@@ -209,19 +196,76 @@ class MainViewModel : ViewModel() {
         chatRef.child(key).removeEventListener(messageListener)
     }
 
-    fun getCurrentUser(): User {
-        val displayName = auth.currentUser?.displayName ?: ""
-        val photoUrl = auth.currentUser?.photoUrl.toString()
-        val email = auth.currentUser?.email ?: ""
-
-        return User(
-            displayName = displayName,
-            photoUrl = photoUrl,
-            email = email
-        )
-    }
+    fun getCurrentUser(): User = userData.value.user
 
     fun clearChats() {
         _chats.value = emptyList()
+    }
+
+    private fun deleteUser(uid: String, callback: () -> Unit) {
+        userRef.get().addOnSuccessListener { dataSnapshot ->
+            val filteredUsers = dataSnapshot.children.map {
+                it.getValue(User::class.java)
+            }.filter {
+                it?.uid != uid
+            }
+
+            userRef.setValue(filteredUsers).addOnSuccessListener {
+                callback()
+            }
+        }
+    }
+
+    private fun deleteChatsOfUser(uid: String, callback: () -> Unit) {
+        chatRef.get().addOnSuccessListener { dataSnapshot ->
+            val hashMap: HashMap<String, List<Message>> = hashMapOf()
+
+            for (item in dataSnapshot.children) {
+                item.key?.let {
+                    if (!it.contains(uid)) {
+                        hashMap[it] = item.value as List<Message>
+                    }
+                }
+            }
+
+            chatRef.setValue(hashMap).addOnSuccessListener {
+                callback()
+            }
+        }
+    }
+
+    private fun saveNewUser(firebaseUser: FirebaseUser) {
+        val (publicKeyRSA, privateKeyRSA) = RSAUtils.getKeyPair()
+        val secretKeyAES = AESUtils.getSecretKey()
+
+        val user = User(
+            uid = firebaseUser.uid,
+            displayName = firebaseUser.displayName.toString(),
+            email = firebaseUser.email.toString(),
+            photoUrl = firebaseUser.photoUrl.toString(),
+            publicKey = publicKeyRSA
+        )
+
+        userRef.child(firebaseUser.uid).setValue(user).addOnSuccessListener {
+            updateUserData(user, privateKeyRSA, secretKeyAES)
+        }
+    }
+
+    private fun updateUserData(
+        user: User = User(),
+        privateKey: String = "",
+        secretKey: String = ""
+    ) {
+        viewModelScope.launch {
+            context.dataStore.updateData {
+                UserData(
+                    user = user,
+                    privateKey = privateKey,
+                    secretKey = secretKey
+                )
+            }.let {
+                userData.value = it
+            }
+        }
     }
 }
