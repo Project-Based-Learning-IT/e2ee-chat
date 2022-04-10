@@ -53,7 +53,9 @@ jobs:
       # Generate Signing Report
       - name: Generate Signing Report
         run: |
-          keytool -genkey -v -keystore debug.keystore -storepass android -alias androiddebugkey -keypass android -keyalg RSA -keysize 2048 -validity 10000
+          cd app
+          keytool -genkey -noprompt -keystore debug.keystore -storepass android -alias androiddebugkey -dname "C=US, O=Android, CN=Android Debug" -keypass android -keyalg RSA -keysize 2048 -validity 10000
+          cd ..
           bash ./gradlew signingReport
       
       # Upload the generated APKs to the artifacts
