@@ -32,7 +32,7 @@ class MainViewModel : ViewModel() {
     val isUserListLoading = MutableStateFlow(false)
     val areMessagesLoading = MutableStateFlow(false)
     val textState = mutableStateOf("")
-    val users = mutableStateOf<List<User>>(listOf())
+    val users = mutableStateOf<List<User>>(emptyList())
     val isSigningIn = MutableStateFlow(false)
 
     private val chatRef = database.getReference("chats")
@@ -50,7 +50,7 @@ class MainViewModel : ViewModel() {
         .requestEmail()
         .build()
 
-    private val _chats = MutableStateFlow<List<Message>>(listOf())
+    private val _chats = MutableStateFlow<List<Message>>(emptyList())
     val chats: Flow<List<Message>>
         get() = _chats.map { list ->
             list.map {
@@ -76,7 +76,7 @@ class MainViewModel : ViewModel() {
         override fun onDataChange(dataSnapshot: DataSnapshot) {
             areMessagesLoading.value = true
             val messages = dataSnapshot.getValue<List<Message>>()
-            _chats.value = messages ?: listOf()
+            _chats.value = messages ?: emptyList()
             areMessagesLoading.value = false
         }
 
@@ -222,6 +222,6 @@ class MainViewModel : ViewModel() {
     }
 
     fun clearChats() {
-        _chats.value = listOf()
+        _chats.value = emptyList()
     }
 }

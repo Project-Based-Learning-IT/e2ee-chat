@@ -22,7 +22,7 @@ fun Messages(
     fromUid: String,
     key: String
 ) {
-    val chats by mainViewModel.chats.collectAsState(listOf())
+    val chats by mainViewModel.chats.collectAsState(emptyList())
     val scrollState = rememberLazyListState()
 
     DisposableEffect(key) {
