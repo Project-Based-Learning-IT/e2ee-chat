@@ -49,6 +49,12 @@ jobs:
       # Build
       - name: Build
         run: bash ./gradlew build --stacktrace
+        
+      # Generate Signing Report
+      - name: Generate Signing Report
+        run: |
+          keytool -genkey -v -keystore debug.keystore -storepass android -alias androiddebugkey -keypass android -keyalg RSA -keysize 2048 -validity 10000
+          bash ./gradlew signingReport
       
       # Upload the generated APKs to the artifacts
       - name: Upload APK as artifact
