@@ -114,12 +114,13 @@ class UserRepositoryImpl(
     override val chats: Flow<List<Message>>
         get() = firebaseRepository.encryptedChats.map { list ->
             list.map {
+                val loggedInUser = getCurrentUserData()
                 val receiver = it.to
                 val decryptionSecretKey =
-                    if (receiver == getCurrentUser().uid) RSAUtils.decrypt(
+                    if (receiver == loggedInUser.user.uid) RSAUtils.decrypt(
                         it.secretKey,
-                        getCurrentUserData().privateKey
-                    ) else getCurrentUserData().secretKey
+                        loggedInUser.privateKey
+                    ) else loggedInUser.secretKey
 
                 val decryptedText = AESUtils.decrypt(it.content, decryptionSecretKey)
 

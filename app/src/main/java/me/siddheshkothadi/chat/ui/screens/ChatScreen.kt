@@ -121,7 +121,7 @@ fun ChatScreen(
                             .padding(horizontal = 12.dp, vertical = 18.dp),
                         keyboardOptions = KeyboardOptions(
                             keyboardType = KeyboardType.Text,
-                            imeAction = ImeAction.Send
+                            imeAction = ImeAction.Default
                         ),
                         maxLines = 3,
                         cursorBrush = SolidColor(LocalContentColor.current),
