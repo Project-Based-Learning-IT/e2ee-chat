@@ -1,7 +1,5 @@
 package me.siddheshkothadi.chat.ui.screens
 
-import android.util.Log
-import android.widget.Toast
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -11,10 +9,8 @@ import androidx.compose.material.icons.filled.ExitToApp
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
-import com.google.android.gms.auth.api.signin.GoogleSignIn
 import me.siddheshkothadi.chat.MainViewModel
 import me.siddheshkothadi.chat.ui.components.ChatCard
 
@@ -31,7 +27,11 @@ fun ChatListScreen(
     val isUserListLoading by mainViewModel.isUserListLoading.collectAsState()
     val listOfUsers by mainViewModel.users
 
-    val context = LocalContext.current
+    val openDialog = remember {
+        mutableStateOf(false)
+    }
+
+    val isLoggingOut = remember { mutableStateOf(false) }
 
     Scaffold(
         topBar = {
@@ -47,10 +47,7 @@ fun ChatListScreen(
                     ),
                     actions = {
                         IconButton(onClick = {
-                            GoogleSignIn.getClient(context, mainViewModel.gso).signOut().addOnSuccessListener {
-                                Toast.makeText(context, "Logged Out", Toast.LENGTH_LONG).show()
-                            }
-                            mainViewModel.signOut()
+                            openDialog.value = true
                         }) {
                             Icon(Icons.Default.ExitToApp, null)
                         }
@@ -66,6 +63,39 @@ fun ChatListScreen(
             }
         },
     ) {
+        if (openDialog.value) {
+            AlertDialog(
+                onDismissRequest = { openDialog.value = false },
+                confirmButton = {
+                    TextButton(
+                        onClick = {
+                            isLoggingOut.value = true
+                            mainViewModel.signOut {
+                                isLoggingOut.value = false
+                            }
+                        },
+                        enabled = !isLoggingOut.value
+                    ) {
+                        Text("Yes")
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = { openDialog.value = false }) {
+                        Text("Cancel")
+                    }
+                },
+                title = {
+                    Text("Log out?")
+                },
+                text = {
+                    Text("All chats and account information linked with this account will be permanently deleted.")
+                },
+                icon = {
+                    Icon(Icons.Default.ExitToApp, null)
+                },
+
+                )
+        }
         LazyColumn(
             contentPadding = PaddingValues(vertical = 8.dp)
         ) {
@@ -80,7 +110,7 @@ fun ChatListScreen(
                     }
                 )
             }
-            if(isUserListLoading) {
+            if (isUserListLoading) {
                 item {
                     Row(
                         modifier = Modifier
@@ -91,7 +121,8 @@ fun ChatListScreen(
                         CircularProgressIndicator(
                             Modifier
                                 .width(24.dp)
-                                .height(24.dp))
+                                .height(24.dp)
+                        )
                     }
                 }
             }

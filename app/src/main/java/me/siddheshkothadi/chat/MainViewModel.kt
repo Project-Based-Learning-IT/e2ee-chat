@@ -7,6 +7,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.datastore.dataStore
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.android.gms.auth.api.signin.GoogleSignInOptions
 import com.google.firebase.auth.AuthCredential
 import com.google.firebase.auth.FirebaseUser
@@ -101,10 +102,8 @@ class MainViewModel @Inject constructor(
                 isSigningIn.value = true
                 context.dataStore.data.first().let { userDataFromDataStore ->
                     if (userDataFromDataStore.privateKey.isEmpty()) {
-                        Log.i("Auth", "Data Store empty")
                         // Not previously logged in, does not contain userData
                         it.currentUser?.let { firebaseUser ->
-                            Log.i("Auth", "Just logged in")
                             // If just logged in, delete old data and save new data
                             deleteChatsOfUser(firebaseUser.uid) {
                                 deleteUser(firebaseUser.uid) {
@@ -165,11 +164,15 @@ class MainViewModel @Inject constructor(
         }
     }
 
-    fun signOut() {
-        auth.signOut()
-        deleteChatsOfUser(userData.value.user.uid) {
-            deleteUser(userData.value.user.uid) {
-                updateUserData()
+    fun signOut(callback: () -> Unit) {
+        GoogleSignIn.getClient(context, gso).signOut().addOnSuccessListener {
+            deleteChatsOfUser(userData.value.user.uid) {
+                deleteUser(userData.value.user.uid) {
+                    updateUserData()
+                    auth.signOut()
+                    callback()
+                    Toast.makeText(context, "Logged Out", Toast.LENGTH_LONG).show()
+                }
             }
         }
     }
@@ -254,7 +257,7 @@ class MainViewModel @Inject constructor(
     private fun updateUserData(
         user: User = User(),
         privateKey: String = "",
-        secretKey: String = ""
+        secretKey: String = "",
     ) {
         viewModelScope.launch {
             context.dataStore.updateData {
