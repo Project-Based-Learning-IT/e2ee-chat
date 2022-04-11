@@ -1,10 +1,9 @@
-package me.siddheshkothadi.chat
+package me.siddheshkothadi.chat.ui.viewmodel
 
 import android.content.Context
 import android.util.Log
 import android.widget.Toast
 import androidx.compose.runtime.mutableStateOf
-import androidx.datastore.dataStore
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.google.android.gms.auth.api.signin.GoogleSignIn
@@ -24,22 +23,22 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
+import me.siddheshkothadi.chat.ChatApplication
 import me.siddheshkothadi.chat.data.UserData
-import me.siddheshkothadi.chat.data.UserDataSerializer
-import me.siddheshkothadi.chat.model.Message
-import me.siddheshkothadi.chat.model.User
+import me.siddheshkothadi.chat.domain.model.Message
+import me.siddheshkothadi.chat.domain.model.User
+import me.siddheshkothadi.chat.domain.repository.DataStoreRepository
 import me.siddheshkothadi.chat.utils.AESUtils
 import me.siddheshkothadi.chat.utils.RSAUtils
 import javax.inject.Inject
 
 @HiltViewModel
 class MainViewModel @Inject constructor(
-    private val context: ChatApplication
+    private val context: ChatApplication,
+    private val dataStoreRepository: DataStoreRepository
 ) : ViewModel() {
     private val auth = Firebase.auth
     private val database = Firebase.database
-
-    private val Context.dataStore by dataStore("user-data.json", UserDataSerializer)
 
     private val userData = MutableStateFlow(UserData())
 
@@ -100,7 +99,7 @@ class MainViewModel @Inject constructor(
         auth.addAuthStateListener {
             viewModelScope.launch {
                 isSigningIn.value = true
-                context.dataStore.data.first().let { userDataFromDataStore ->
+                dataStoreRepository.userData.first().let { userDataFromDataStore ->
                     if (userDataFromDataStore.privateKey.isEmpty()) {
                         // Not previously logged in, does not contain userData
                         it.currentUser?.let { firebaseUser ->
@@ -260,15 +259,7 @@ class MainViewModel @Inject constructor(
         secretKey: String = "",
     ) {
         viewModelScope.launch {
-            context.dataStore.updateData {
-                UserData(
-                    user = user,
-                    privateKey = privateKey,
-                    secretKey = secretKey
-                )
-            }.let {
-                userData.value = it
-            }
+            userData.value = dataStoreRepository.updateUserData(user, privateKey, secretKey)
         }
     }
 }

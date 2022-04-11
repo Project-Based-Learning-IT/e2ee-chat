@@ -23,9 +23,9 @@ import com.google.accompanist.navigation.animation.composable
 import com.google.accompanist.navigation.animation.rememberAnimatedNavController
 import com.google.accompanist.systemuicontroller.rememberSystemUiController
 import dagger.hilt.android.AndroidEntryPoint
-import me.siddheshkothadi.chat.data.UserData
 import me.siddheshkothadi.chat.ui.screens.*
 import me.siddheshkothadi.chat.ui.theme.ChatTheme
+import me.siddheshkothadi.chat.ui.viewmodel.MainViewModel
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {

@@ -20,4 +20,4 @@
 # hide the original source file name.
 #-renamesourcefileattribute SourceFile
 
--keep class me.siddheshkothadi.chat.model.** { *; }
+-keep class me.siddheshkothadi.chat.domain.model.** { *; }

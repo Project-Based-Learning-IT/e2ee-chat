@@ -19,7 +19,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
 import coil.compose.AsyncImage
-import me.siddheshkothadi.chat.model.User
+import me.siddheshkothadi.chat.domain.model.User
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

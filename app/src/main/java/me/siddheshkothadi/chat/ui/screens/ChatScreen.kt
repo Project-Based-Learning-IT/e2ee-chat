@@ -2,7 +2,6 @@ package me.siddheshkothadi.chat.ui.screens
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
@@ -18,7 +17,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
@@ -27,8 +25,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
 import coil.compose.AsyncImage
-import me.siddheshkothadi.chat.MainViewModel
-import me.siddheshkothadi.chat.model.User
+import me.siddheshkothadi.chat.ui.viewmodel.MainViewModel
+import me.siddheshkothadi.chat.domain.model.User
 import me.siddheshkothadi.chat.ui.components.Messages
 
 @OptIn(ExperimentalMaterial3Api::class)

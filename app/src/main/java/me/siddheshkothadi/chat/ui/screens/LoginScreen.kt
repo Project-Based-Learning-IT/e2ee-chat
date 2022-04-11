@@ -24,7 +24,7 @@ import com.airbnb.lottie.compose.*
 import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.android.gms.common.api.ApiException
 import com.google.firebase.auth.GoogleAuthProvider
-import me.siddheshkothadi.chat.MainViewModel
+import me.siddheshkothadi.chat.ui.viewmodel.MainViewModel
 import me.siddheshkothadi.chat.R
 
 @Composable

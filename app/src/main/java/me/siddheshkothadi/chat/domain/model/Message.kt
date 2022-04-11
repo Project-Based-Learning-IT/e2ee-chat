@@ -1,4 +1,4 @@
-package me.siddheshkothadi.chat.model
+package me.siddheshkothadi.chat.domain.model
 
 data class Message(
     val from: String = "",

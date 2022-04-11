@@ -11,7 +11,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
-import me.siddheshkothadi.chat.MainViewModel
+import me.siddheshkothadi.chat.ui.viewmodel.MainViewModel
 import me.siddheshkothadi.chat.ui.components.ChatCard
 
 @OptIn(ExperimentalMaterial3Api::class)
