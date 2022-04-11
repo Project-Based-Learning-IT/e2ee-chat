@@ -28,8 +28,7 @@ import me.siddheshkothadi.chat.ui.viewmodel.MainViewModel
 import me.siddheshkothadi.chat.R
 
 @Composable
-fun LoggedOutScreen(
-    navHostController: NavHostController,
+fun LoginScreen(
     mainViewModel: MainViewModel
 ) {
     val context = LocalContext.current
@@ -51,7 +50,7 @@ fun LoggedOutScreen(
             try {
                 val account = task.getResult(ApiException::class.java)!!
                 val credential = GoogleAuthProvider.getCredential(account.idToken!!, null)
-                mainViewModel.signWithCredential(credential, context)
+                mainViewModel.signWithCredential(credential)
             } catch (e: ApiException) {
                 Log.w("Auth", "Google sign in failed", e)
             }

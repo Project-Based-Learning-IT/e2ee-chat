@@ -25,9 +25,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
 import coil.compose.AsyncImage
-import me.siddheshkothadi.chat.ui.viewmodel.MainViewModel
 import me.siddheshkothadi.chat.domain.model.User
 import me.siddheshkothadi.chat.ui.components.Messages
+import me.siddheshkothadi.chat.ui.viewmodel.MainViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -38,7 +38,8 @@ fun ChatScreen(
 ) {
     val areMessagesLoading by mainViewModel.areMessagesLoading.collectAsState()
     val currentUserUid = mainViewModel.getCurrentUserUid()
-    val key = if(currentUserUid < user.uid) "${currentUserUid}__join__${user.uid}" else "${user.uid}__join__${currentUserUid}"
+    val key =
+        if (currentUserUid < user.uid) "${currentUserUid}__join__${user.uid}" else "${user.uid}__join__${currentUserUid}"
 
     Scaffold(
         topBar = {
@@ -109,7 +110,8 @@ fun ChatScreen(
                     CircularProgressIndicator(
                         modifier = Modifier
                             .height(20.dp)
-                            .width(20.dp).alpha(if(areMessagesLoading) 1f else 0f)
+                            .width(20.dp)
+                            .alpha(if (areMessagesLoading) 1f else 0f)
                     )
                     BasicTextField(
                         value = textState,
@@ -129,14 +131,12 @@ fun ChatScreen(
                         )
                     )
                     IconButton(onClick = {
-                        if (textState.isNotBlank()) {
-                            mainViewModel.addTextToChat(
-                                key = key,
-                                text = textState,
-                                from = currentUserUid,
-                                to = user
-                            )
-                        }
+                        mainViewModel.addTextToChat(
+                            key = key,
+                            text = textState,
+                            from = currentUserUid,
+                            to = user
+                        )
                     }) {
                         Icon(
                             Icons.Default.Send,

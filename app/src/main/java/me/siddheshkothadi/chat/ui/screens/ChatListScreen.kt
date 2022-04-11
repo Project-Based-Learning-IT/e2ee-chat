@@ -11,8 +11,8 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
-import me.siddheshkothadi.chat.ui.viewmodel.MainViewModel
 import me.siddheshkothadi.chat.ui.components.ChatCard
+import me.siddheshkothadi.chat.ui.viewmodel.MainViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -20,18 +20,13 @@ fun ChatListScreen(
     navHostController: NavHostController,
     mainViewModel: MainViewModel
 ) {
-    SideEffect {
-        mainViewModel.fetchUsers()
-    }
-
-    val isUserListLoading by mainViewModel.isUserListLoading.collectAsState()
-    val listOfUsers by mainViewModel.users
+    val isUserListLoading by mainViewModel.isUserListLoading.collectAsState(false)
+    val listOfUsers by mainViewModel.users.collectAsState(emptyList())
+    val isLoggingOut by mainViewModel.isLoggingOut.collectAsState()
 
     val openDialog = remember {
         mutableStateOf(false)
     }
-
-    val isLoggingOut = remember { mutableStateOf(false) }
 
     Scaffold(
         topBar = {
@@ -69,12 +64,9 @@ fun ChatListScreen(
                 confirmButton = {
                     TextButton(
                         onClick = {
-                            isLoggingOut.value = true
-                            mainViewModel.signOut {
-                                isLoggingOut.value = false
-                            }
+                            mainViewModel.signOut()
                         },
-                        enabled = !isLoggingOut.value
+                        enabled = !isLoggingOut
                     ) {
                         Text("Yes")
                     }
@@ -92,9 +84,8 @@ fun ChatListScreen(
                 },
                 icon = {
                     Icon(Icons.Default.ExitToApp, null)
-                },
-
-                )
+                }
+            )
         }
         LazyColumn(
             contentPadding = PaddingValues(vertical = 8.dp)

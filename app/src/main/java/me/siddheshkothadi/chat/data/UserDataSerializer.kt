@@ -1,9 +1,8 @@
 package me.siddheshkothadi.chat.data
 
-import android.content.Context
 import androidx.datastore.core.Serializer
-import androidx.datastore.dataStore
 import kotlinx.serialization.json.Json
+import me.siddheshkothadi.chat.domain.model.UserData
 import java.io.InputStream
 import java.io.OutputStream
 
