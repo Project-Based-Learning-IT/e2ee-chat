@@ -16,6 +16,8 @@ import me.siddheshkothadi.chat.domain.repository.FirebaseRepository
 import me.siddheshkothadi.chat.domain.repository.UserRepository
 import me.siddheshkothadi.chat.utils.AESUtils
 import me.siddheshkothadi.chat.utils.RSAUtils
+import java.text.SimpleDateFormat
+import java.util.*
 
 class UserRepositoryImpl(
     private val context: ChatApplication,
@@ -84,12 +86,15 @@ class UserRepositoryImpl(
         val encryptedText = AESUtils.encrypt(text, currentUserData.secretKey)
         val encryptedSecretKey = RSAUtils.encrypt(currentUserData.secretKey, to.publicKey)
 
+        val tmstmp = System.currentTimeMillis().toString()
+
         chatList.add(
             Message(
                 from = from,
                 to = to.uid,
-                timestamp = System.currentTimeMillis().toString(),
+                timestamp = tmstmp,
                 content = encryptedText,
+                timeIST = SimpleDateFormat("MMM dd hh:mm:ss z yyyy", Locale.ENGLISH).format(Date(tmstmp)),
                 secretKey = encryptedSecretKey
             )
         )
