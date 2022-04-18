@@ -113,23 +113,30 @@ fun ChatScreen(
                             .width(20.dp)
                             .alpha(if (areMessagesLoading) 1f else 0f)
                     )
-                    BasicTextField(
-                        value = textState,
-                        onValueChange = { mainViewModel.setTextState(it) },
-                        modifier = Modifier
-                            .weight(1f)
-                            .padding(horizontal = 12.dp, vertical = 18.dp),
-                        keyboardOptions = KeyboardOptions(
-                            keyboardType = KeyboardType.Text,
-                            imeAction = ImeAction.Default
-                        ),
-                        maxLines = 3,
-                        cursorBrush = SolidColor(LocalContentColor.current),
-                        textStyle = LocalTextStyle.current.copy(
-                            color = LocalContentColor.current,
-                            fontSize = 16.sp
+                    Box(Modifier
+                        .weight(1f)
+                        .padding(horizontal = 0.dp, vertical = 18.dp)) {
+                        if(textState.isEmpty()) {
+                            Text(
+                                text = "Message",
+                                modifier = Modifier.alpha(0.5f)
+                            )
+                        }
+                        BasicTextField(
+                            value = textState,
+                            onValueChange = { mainViewModel.setTextState(it) },
+                            keyboardOptions = KeyboardOptions(
+                                keyboardType = KeyboardType.Text,
+                                imeAction = ImeAction.Default
+                            ),
+                            maxLines = 3,
+                            cursorBrush = SolidColor(LocalContentColor.current),
+                            textStyle = LocalTextStyle.current.copy(
+                                color = LocalContentColor.current,
+                                fontSize = 16.sp
+                            )
                         )
-                    )
+                    }
                     IconButton(onClick = {
                         mainViewModel.addTextToChat(
                             key = key,
