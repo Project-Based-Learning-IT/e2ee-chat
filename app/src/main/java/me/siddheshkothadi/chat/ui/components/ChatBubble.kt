@@ -86,7 +86,6 @@ fun ChatBubble(
                         .padding(end = 20.dp, bottom = 10.dp)
                         .alpha(0.4f),
                     textAlign = TextAlign.Right,
-                    color = colorScheme.background,
                     style = MaterialTheme.typography.labelSmall
                 )
             }
