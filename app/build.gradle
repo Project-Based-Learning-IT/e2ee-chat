@@ -67,7 +67,7 @@ dependencies {
     androidTestImplementation 'androidx.test.espresso:espresso-core:3.4.0'
     androidTestImplementation "androidx.compose.ui:ui-test-junit4:1.1.1"
     debugImplementation "androidx.compose.ui:ui-tooling:1.1.1"
-    implementation "androidx.compose.runtime:runtime-livedata:1.1.1"
+    implementation "androidx.compose.runtime:runtime:1.2.0-alpha07"
 
     implementation "androidx.compose.foundation:foundation:1.2.0-alpha06"
     implementation "androidx.compose.foundation:foundation-layout:1.2.0-alpha06"
@@ -76,6 +76,7 @@ dependencies {
     implementation "androidx.compose.material3:material3:1.0.0-alpha08"
     implementation "androidx.core:core-splashscreen:1.0.0-beta02"
     implementation "com.google.accompanist:accompanist-systemuicontroller:0.24.5-alpha"
+    implementation "com.google.accompanist:accompanist-flowlayout:0.24.5-alpha"
 
     implementation platform('com.google.firebase:firebase-bom:29.3.0')
     implementation 'com.google.firebase:firebase-database-ktx'

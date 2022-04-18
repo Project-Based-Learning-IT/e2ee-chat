@@ -12,7 +12,7 @@ import me.siddheshkothadi.chat.domain.model.UserData
 interface UserRepository {
     val firebaseAuth: FirebaseAuth
     val userData: Flow<UserData>
-    val chats: Flow<List<Message>>
+    val chats: Flow<Map<String, List<Message>>>
     val users: Flow<List<User>>
     val isUserListLoading: Flow<Boolean>
     fun clearChats()

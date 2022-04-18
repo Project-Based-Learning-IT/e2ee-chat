@@ -81,25 +81,28 @@ class UserRepositoryImpl(
     }
 
     override suspend fun addChat(text: String, from: String, to: User, key: String) {
-        val chatList = firebaseRepository.encryptedChats.first().toMutableList()
+        val timestamp = System.currentTimeMillis().toString()
+        val timeISTString = SimpleDateFormat("dd-MMM-yyyy HH:mm", Locale.ENGLISH).format(Date())
+        val (date, time) = timeISTString.split(" ")
+
+        val chatList = firebaseRepository.encryptedChats.first()[date]?.toMutableList() ?: mutableListOf()
         val currentUserData = getCurrentUserData()
         val encryptedText = AESUtils.encrypt(text, currentUserData.secretKey)
         val encryptedSecretKey = RSAUtils.encrypt(currentUserData.secretKey, to.publicKey)
-
-        val tmstmp = System.currentTimeMillis().toString()
 
         chatList.add(
             Message(
                 from = from,
                 to = to.uid,
-                timestamp = tmstmp,
+                timestamp = timestamp,
+                date = date,
+                time = time,
                 content = encryptedText,
-                timeIST = SimpleDateFormat("MMM dd hh:mm:ss z yyyy", Locale.ENGLISH).format(Date(tmstmp)),
                 secretKey = encryptedSecretKey
             )
         )
 
-        firebaseRepository.addChat(key, chatList)
+        firebaseRepository.addChat(key, date, chatList)
     }
 
     override suspend fun saveNewUser(firebaseUser: FirebaseUser) {
@@ -116,26 +119,33 @@ class UserRepositoryImpl(
         return getCurrentUserData().user
     }
 
-    override val chats: Flow<List<Message>>
-        get() = firebaseRepository.encryptedChats.map { list ->
-            list.map {
-                val loggedInUser = getCurrentUserData()
-                val receiver = it.to
-                val decryptionSecretKey =
-                    if (receiver == loggedInUser.user.uid) RSAUtils.decrypt(
-                        it.secretKey,
-                        loggedInUser.privateKey
-                    ) else loggedInUser.secretKey
+    override val chats: Flow<Map<String, List<Message>>>
+        get() = firebaseRepository.encryptedChats.map { dateToMessages ->
+            val hashMap = hashMapOf<String, List<Message>>()
+            val loggedInUser = getCurrentUserData()
 
-                val decryptedText = AESUtils.decrypt(it.content, decryptionSecretKey)
+            dateToMessages.forEach { mapEntry ->
+                hashMap[mapEntry.key] = mapEntry.value.map {
+                    val receiver = it.to
+                    val decryptionSecretKey =
+                        if (receiver == loggedInUser.user.uid) RSAUtils.decrypt(
+                            it.secretKey,
+                            loggedInUser.privateKey
+                        ) else loggedInUser.secretKey
 
-                Message(
-                    from = it.from,
-                    to = it.to,
-                    timestamp = it.timestamp,
-                    content = decryptedText,
-                )
-            }.sortedByDescending { it.timestamp }
+                    val decryptedText = AESUtils.decrypt(it.content, decryptionSecretKey)
+
+                    Message(
+                        from = it.from,
+                        to = it.to,
+                        date = it.date,
+                        time = it.time,
+                        content = decryptedText,
+                    )
+                }.reversed()
+            }
+
+            hashMap
         }
 
     override val users: Flow<List<User>>

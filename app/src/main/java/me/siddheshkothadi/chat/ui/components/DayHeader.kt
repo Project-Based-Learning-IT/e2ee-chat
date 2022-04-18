@@ -16,7 +16,7 @@ import androidx.compose.ui.unit.dp
 fun DayHeader(dayString: String) {
     Row(
         modifier = Modifier
-            .padding(vertical = 30.dp, horizontal = 16.dp)
+            .padding(16.dp)
             .height(16.dp)
     ) {
         DayHeaderLine()

@@ -9,12 +9,12 @@ import me.siddheshkothadi.chat.domain.model.User
 interface FirebaseRepository {
     val auth: FirebaseAuth
     val users: Flow<List<User>>
-    val encryptedChats: Flow<List<Message>>
+    val encryptedChats: Flow<Map<String, List<Message>>>
     val isUserListLoading: Flow<Boolean>
     suspend fun deleteUser(uid: String)
     suspend fun deleteChatsOfUser(uid: String)
     suspend fun saveNewUser(user: User)
-    suspend fun addChat(key: String, chatList: List<Message>)
+    suspend fun addChat(key: String, date: String, chatList: List<Message>)
     suspend fun signOut(gso: GoogleSignInOptions)
     fun isSignedIn(): Boolean
     fun addMessageEventListener(key: String)

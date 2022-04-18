@@ -26,10 +26,10 @@ class FirebaseRepositoryImpl @Inject constructor(
     private val database = Firebase.database
     private val chatRef = database.getReference("chats")
     private val userRef = database.getReference("users")
-    private val _chats = MutableStateFlow<List<Message>>(emptyList())
+    private val _chats = MutableStateFlow<Map<String, List<Message>>>(emptyMap())
 
-    override suspend fun addChat(key: String, chatList: List<Message>) {
-        chatRef.child(key).setValue(chatList).await()
+    override suspend fun addChat(key: String, date: String, chatList: List<Message>) {
+        chatRef.child(key).child(date).setValue(chatList).await()
     }
 
     override suspend fun signOut(gso: GoogleSignInOptions) {
@@ -42,8 +42,8 @@ class FirebaseRepositoryImpl @Inject constructor(
 
     private val messageListener = object : ValueEventListener {
         override fun onDataChange(dataSnapshot: DataSnapshot) {
-            val messages = dataSnapshot.getValue<List<Message>>()
-            _chats.value = messages ?: emptyList()
+            val messages = dataSnapshot.getValue<Map<String, List<Message>>>()
+            _chats.value = messages ?: emptyMap()
         }
 
         override fun onCancelled(databaseError: DatabaseError) {
@@ -57,7 +57,7 @@ class FirebaseRepositoryImpl @Inject constructor(
 
     override val auth = Firebase.auth
 
-    override val encryptedChats: Flow<List<Message>>
+    override val encryptedChats: Flow<Map<String, List<Message>>>
         get() = _chats
 
     override val users: Flow<List<User>> = flow {
@@ -83,12 +83,12 @@ class FirebaseRepositoryImpl @Inject constructor(
 
     override suspend fun deleteChatsOfUser(uid: String) {
         val dataSnapshot = chatRef.get().await()
-        val hashMap: HashMap<String, List<Message>> = hashMapOf()
+        val hashMap: HashMap<String, HashMap<String, List<Message>>> = hashMapOf()
 
         for (item in dataSnapshot.children) {
             item.key?.let {
                 if (!it.contains(uid)) {
-                    hashMap[it] = item.value as List<Message>
+                    hashMap[it] = item.value as HashMap<String, List<Message>>
                 }
             }
         }
@@ -109,7 +109,7 @@ class FirebaseRepositoryImpl @Inject constructor(
     }
 
     override fun clearChats() {
-        _chats.value = emptyList()
+        _chats.value = emptyMap()
     }
 
     override fun isSignedIn(): Boolean {
