@@ -43,7 +43,7 @@ fun Messages(
             items(messages) { message ->
                 ChatBubble(message = message.content, isUserMe = fromUid == message.from, time = message.time)
             }
-            stickyHeader {
+            item {
                 DayHeader(dayString = date)
             }
         }
